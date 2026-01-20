@@ -133,6 +133,27 @@ func (m *Microservice) Run(handler HandlerFunc) error {
 	return nil
 }
 
+func (m *Microservice) Exec() (stdout string, stderr string, err error) {
+	defer m.closeAll()
+
+	// Ruošiame bufferius surinkimui
+	var outBuf, errBuf bytes.Buffer
+
+	cmd := exec.Command(m.Command, m.Args...)
+
+	// Input (jei buvo nustatytas FromFile, naudos failą, jei NoInput - nieką)
+	cmd.Stdin = m.stdinSource
+
+	// Output surenkame į bufferius
+	cmd.Stdout = &outBuf
+	cmd.Stderr = &errBuf
+
+	err = cmd.Run()
+
+	// Grąžiname surinktus tekstus
+	return outBuf.String(), errBuf.String(), err
+}
+
 func (m *Microservice) closeAll() {
 	for _, c := range m.closers {
 		_ = c.Close()
