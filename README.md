@@ -1,5 +1,7 @@
 # go-launcher
 
+`go-launcher` yra Go kalba parašytas paketas, skirtas paleisti mikroservisus kaip atskirus procesus. Jis leidžia lengvai konfigūruoti mikroserviso vykdymą, nustatyti įvesties duomenis ir apdoroti išvestį. Šis paketas yra naudingas orkestruojant mikroservisų veikimą ir užtikrinant sklandų duomenų perdavimą tarp jų.
+
 ```go
 
 package main
