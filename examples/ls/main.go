@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 
 	"github.com/atvirokodosprendimai/go-launcher"
 )
@@ -19,7 +18,7 @@ func main() {
 	ms := launcher.Create("ls")
 
 	// Nustatome inputą (gali būti failas, bet čia stringas)
-	ms.SetInput(strings.NewReader(inputData))
+	ms.FromMemory([]byte(inputData))
 
 	log.Println("Orkestratorius: Paleidžiu mikroservisą...")
 
