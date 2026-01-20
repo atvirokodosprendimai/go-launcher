@@ -2,52 +2,64 @@
 
 `go-launcher` yra Go kalba parašytas paketas, skirtas paleisti mikroservisus kaip atskirus procesus. Jis leidžia lengvai konfigūruoti mikroserviso vykdymą, nustatyti įvesties duomenis ir apdoroti išvestį. Šis paketas yra naudingas orkestruojant mikroservisų veikimą ir užtikrinant sklandų duomenų perdavimą tarp jų.
 
+
+Pavizdys kaip dirbti su failais:
+
 ```go
-
-package main
-
-import (
-	"fmt"
-	"io"
-	"log"
-	"os"
-	"strings"
-
-	"github.com/atvirokodosprendimai/launcher"
-)
-
 func main() {
-	// Duomenys, kuriuos siųsime į mikroservisą
-	inputData := `{"invoice_id": "123", "amount": 500}`
+    // 1. Sukuriame servisą (naudojame --std, nes failus valdo launcheris!)
+    ms := launcher.Create("./bin/invoice-processor", "--std")
 
-	// 1. Konfigūruojame
-	// Tarkime, tavo sukompiliuotas mikroservisas yra "./bin/invoice-processor"
-	// Svarbu: Jei tas mikroservisas naudoja mūsų pirmąjį wrapperį, jam reikia "--std" flag'o!
-	ms := launcher.Create("./bin/invoice-processor", "--std")
-	
-	// Nustatome inputą (gali būti failas, bet čia stringas)
-	ms.SetInput(strings.NewReader(inputData))
+    // 2. Nustatome failus
+    if err := ms.FromFile("data/input.json"); err != nil {
+        log.Fatal(err)
+    }
+    if err := ms.ToFile("data/output.xml"); err != nil {
+        log.Fatal(err)
+    }
 
-	log.Println("Orkestratorius: Paleidžiu mikroservisą...")
+    // 3. Paleidžiame (be callback, nes viskas sukonfigūruota)
+    log.Println("Apdorojami failai...")
+    if err := ms.Run(nil); err != nil {
+        log.Fatalf("Fail: %v", err)
+    }
+    log.Println("Baigta. Rezultatas: data/output.xml")
+}
+```
 
-	// 2. Paleidžiame ir apdorojame rezultatą
-	err := ms.Run(func(output io.Reader) error {
-		// Čia mes gauname duomenis "streaming" būdu tiesiai iš mikroserviso
-		
-		// Pavyzdys: nuskaitome viską į atmintį (bet galėtume ir rašyti į failą)
-		result, err := io.ReadAll(output)
-		if err != nil {
-			return err
-		}
+arba su stdio:
 
-		fmt.Printf("\n--- REZULTATAS IŠ MICROSERVISO ---\n%s\n----------------------------------\n", string(result))
-		return nil
-	})
+```go
+func main() {
+    ms := launcher.Create("./bin/invoice-processor", "--std")
+    
+    // Input iš atminties
+    ms.FromMemory([]byte(`{"id": 999}`))
 
-	if err != nil {
-		log.Fatalf("Klaida vykdant mikroservisą: %v", err)
-	}
+    // Output į callback funkciją
+    err := ms.Run(func(r io.Reader) error {
+        result, _ := io.ReadAll(r)
+        fmt.Printf("Gautas atsakymas: %s\n", result)
+        return nil
+    })
+    
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
 
-	log.Println("Orkestratorius: Darbas baigtas.")
+arba iš failo ir pasiimti stdout
+
+```go
+func main() {
+    ms := launcher.Create("./bin/invoice-processor", "--std")
+    ms.FromFile("didelius_duomenys.json")
+
+    ms.Run(func(r io.Reader) error {
+        // Čia galime dekoduoti JSON streamą
+        // ...
+        return nil
+    })
 }
 ```
